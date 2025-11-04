@@ -4,10 +4,10 @@
  */
 
 import * as cron from 'node-cron';
-import { FeedConfig, SummaryResult } from '../types.js';
+import { FeedConfig, SummaryResult, FeedSummaryBundle } from '../types.js';
 import { fetchFeedArticles } from './rss.service.js';
 import { summarizeContent } from './summarizer.service.js';
-import { sendToLark } from './lark.service.js';
+import { sendBundleToLark } from './lark.service.js';
 import { updateFeedLastProcessed } from './config.service.js';
 
 export interface ProcessorConfig {
@@ -115,34 +115,41 @@ export async function processAllFeeds(
         onlyNew
       );
 
-      // Send each summary to Lark
-      for (const summary of summaries) {
+      // Consolidate all summaries from this feed into a single message
+      if (summaries.length > 0) {
         try {
-          await sendToLark(config.webhookUrl, summary);
+          const bundle: FeedSummaryBundle = {
+            feedId: feed.id,
+            feedName: feed.name,
+            articles: summaries,
+          };
+
+          await sendBundleToLark(config.webhookUrl, bundle);
           console.log(
-            `Sent summary to Lark: ${summary.title.substring(0, 50)}...`
+            `Sent consolidated message to Lark: ${summaries.length} article(s) from ${feed.name}`
           );
-          totalSummaries++;
+          totalSummaries += summaries.length;
+          successCount++;
         } catch (error) {
           console.error(
-            `Failed to send summary to Lark: ${error instanceof Error ? error.message : 'Unknown error'}`
+            `Failed to send consolidated message to Lark: ${error instanceof Error ? error.message : 'Unknown error'}`
           );
           failureCount++;
         }
-      }
 
-      // Update lastProcessed timestamp if we processed articles and configPath is provided
-      if (summaries.length > 0 && config.configPath) {
-        try {
-          await updateFeedLastProcessed(config.configPath, feed.id);
-        } catch (error) {
-          console.warn(
-            `Failed to update lastProcessed for ${feed.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
-          );
+        // Update lastProcessed timestamp if we processed articles and configPath is provided
+        if (config.configPath) {
+          try {
+            await updateFeedLastProcessed(config.configPath, feed.id);
+          } catch (error) {
+            console.warn(
+              `Failed to update lastProcessed for ${feed.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+          }
         }
+      } else {
+        successCount++;
       }
-
-      successCount++;
     } catch (error) {
       console.error(
         `Failed to process feed ${feed.name}: ${error instanceof Error ? error.message : 'Unknown error'}`

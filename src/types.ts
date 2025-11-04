@@ -53,6 +53,16 @@ export interface SummaryResult {
 }
 
 /**
+ * Bundle of summarized articles from a single feed
+ * Used to consolidate multiple articles into a single Lark message
+ */
+export interface FeedSummaryBundle {
+  feedId: string;
+  feedName: string;
+  articles: SummaryResult[];
+}
+
+/**
  * Response from Lark webhook API
  */
 export interface LarkWebhookResponse {
