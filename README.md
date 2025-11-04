@@ -1,11 +1,11 @@
 # RssAiSummaryCompilation
 
-An autonomous RSS feed aggregator with AI-powered summarization and Lark group chat integration. Automatically fetches RSS feeds, summarizes content using Claude API, and posts summaries to Lark.
+An autonomous RSS feed aggregator with AI-powered summarization and Lark group chat integration. Automatically fetches RSS feeds, summarizes content using OpenAI API, and posts summaries to Lark.
 
 ## Features
 
 - **RSS Feed Fetching**: Automatically fetch articles from multiple RSS feeds
-- **AI Summarization**: Use Claude API to generate concise summaries
+- **AI Summarization**: Use OpenAI API to generate concise summaries
 - **Lark Integration**: Post summaries directly to Lark group chats via webhooks
 - **Flexible Configuration**: Manage feeds with customizable prompts and processing schedules
 - **Scheduled Processing**: Cron-based scheduling for automatic feed processing
@@ -17,7 +17,7 @@ An autonomous RSS feed aggregator with AI-powered summarization and Lark group c
 ### Prerequisites
 
 1. **Node.js** (v18+)
-2. **Claude API Key**: Get from [console.anthropic.com](https://console.anthropic.com)
+2. **OpenAI API Key**: Get from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 3. **Lark Webhook URL**: Create a bot in Lark and get webhook URL
 
 ### Installation
@@ -34,8 +34,8 @@ cp .env.example .env
 ### Environment Variables
 
 ```env
-# Claude API Configuration
-ANTHROPIC_API_KEY=sk-ant-...
+# OpenAI API Configuration
+OPENAI_API_KEY=sk-...
 
 # Lark Webhook
 LARK_WEBHOOK_URL=https://open.larksuite.com/open-apis/bot/v2/hook/...
@@ -77,7 +77,7 @@ src/
 ├── types.ts                   # Type definitions
 └── services/
     ├── rss.service.ts        # RSS feed fetching
-    ├── summarizer.service.ts # Claude API integration
+    ├── summarizer.service.ts # OpenAI API integration
     ├── lark.service.ts       # Lark webhook posting
     ├── config.service.ts     # Configuration management
     └── processor.service.ts  # Feed processing & scheduling
@@ -129,7 +129,7 @@ Create `.ai/feeds.json` to configure your RSS feeds:
 - Validates feed URLs
 
 ### Summarizer Service
-- Integrates with Claude API
+- Integrates with OpenAI API (gpt-4o-mini by default)
 - Supports custom summarization prompts
 - Handles batch summarization
 
