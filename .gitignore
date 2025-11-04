@@ -162,6 +162,9 @@ Thumbs.db
 # Test coverage
 coverage/
 
+# Configuration files with sensitive data
+.ai/
+
 # Logs
 *.log
 npm-debug.log*

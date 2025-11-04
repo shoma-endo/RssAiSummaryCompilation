@@ -22,6 +22,8 @@ export interface FeedsConfiguration {
   webhookUrl: string;
   defaultSystemPrompt: string;
   processSchedule: string;
+  realtimeMonitoring?: boolean; // Enable real-time monitoring mode (short polling interval)
+  realtimeIntervalMinutes?: number; // Polling interval in minutes for real-time mode (default: 5)
 }
 
 /**

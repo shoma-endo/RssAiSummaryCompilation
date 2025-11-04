@@ -10,7 +10,6 @@ An autonomous RSS feed aggregator with AI-powered summarization and Lark group c
 - **Flexible Configuration**: Manage feeds with customizable prompts and processing schedules
 - **Scheduled Processing**: Cron-based scheduling for automatic feed processing
 - **Type-Safe**: Full TypeScript implementation with strict type checking
-- **Comprehensive Tests**: 45+ tests covering all core features
 
 ## Getting Started
 
@@ -59,9 +58,6 @@ npm run dev -- --once
 # Build
 npm run build
 
-# Test
-npm test
-
 # Type check
 npm run typecheck
 
@@ -81,14 +77,6 @@ src/
     ├── lark.service.ts       # Lark webhook posting
     ├── config.service.ts     # Configuration management
     └── processor.service.ts  # Feed processing & scheduling
-
-tests/
-├── example.test.ts
-├── rss.service.test.ts
-├── summarizer.service.test.ts
-├── lark.service.test.ts
-├── config.service.test.ts
-└── processor.service.test.ts
 ```
 
 ## Configuration
@@ -129,7 +117,7 @@ Create `.ai/feeds.json` to configure your RSS feeds:
 - Validates feed URLs
 
 ### Summarizer Service
-- Integrates with OpenAI API (gpt-4o-mini by default)
+- Integrates with OpenAI API (gpt-5-nano by default)
 - Supports custom summarization prompts
 - Handles batch summarization
 
@@ -147,24 +135,6 @@ Create `.ai/feeds.json` to configure your RSS feeds:
 - Orchestrates feed processing
 - Schedules with cron expressions
 - Manages summarization and posting workflow
-
-## Testing
-
-Run the full test suite:
-
-```bash
-npm test              # Run all tests
-npm test -- --watch  # Watch mode
-npm test -- --coverage # With coverage
-```
-
-Current test coverage: **45 tests passing**
-- Configuration management: 10 tests
-- RSS fetching: 6 tests
-- Summarization: 10 tests
-- Lark integration: 5 tests
-- Feed processing: 10 tests
-- Core functionality: 4 tests
 
 ## Development
 
@@ -191,7 +161,6 @@ npm run build  # Compiles TypeScript to ./dist
 ### Service Layer
 All business logic is organized into services:
 - Each service has a single responsibility
-- Services are independently testable
 - Clear interfaces for service communication
 
 ### Configuration-Driven
@@ -212,5 +181,4 @@ MIT License - See LICENSE file
 
 ✅ **Complete Implementation**
 - Core features implemented
-- Full test coverage
 - Production-ready configuration

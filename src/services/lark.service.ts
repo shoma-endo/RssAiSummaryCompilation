@@ -34,17 +34,28 @@ export async function sendToLark(
       body: JSON.stringify(message),
     });
 
-    if (!response.ok) {
-      const errorData = (await response.json()) as Record<string, unknown>;
-      const errorMsg = (errorData.msg as string) || response.statusText;
-      throw new Error(`Lark API error: ${errorMsg}`);
+    const data = (await response.json()) as LarkWebhookResponse;
+    
+    // Debug: Log response only if DEBUG environment variable is set
+    if (process.env.DEBUG === 'true') {
+      console.log('Lark API Response:', JSON.stringify(data, null, 2));
     }
 
-    const data = (await response.json()) as LarkWebhookResponse;
+    if (!response.ok) {
+      const errorMsg = data.msg || response.statusText;
+      throw new Error(`Lark API HTTP error: ${errorMsg}`);
+    }
+
+    // Check Lark API response code (0 means success)
+    if (data.code !== 0) {
+      throw new Error(`Lark API error (code: ${data.code}): ${data.msg || 'Unknown error'}`);
+    }
+
     return data;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
+    console.error('Lark send error:', errorMessage);
     throw new Error(`Failed to send message to Lark: ${errorMessage}`);
   }
 }
@@ -68,46 +79,23 @@ export async function sendMultipleToLark(
  * @returns Formatted Lark message
  */
 function formatLarkMessage(summary: SummaryResult): Record<string, unknown> {
-  const titleLink = summary.originalLink ? `[${summary.title}](${summary.originalLink})` : summary.title;
+  // Build message text
+  let messageText = `📰 ${summary.feedName}\n\n`;
+  messageText += `タイトル: ${summary.title}\n`;
+  if (summary.originalLink) {
+    messageText += `リンク: ${summary.originalLink}\n`;
+  }
+  messageText += `\n要約:\n${summary.summary}\n`;
+  if (summary.publishedAt) {
+    messageText += `\n公開日時: ${summary.publishedAt}\n`;
+  }
+  messageText += `\n出典: ${summary.source || summary.feedName}`;
 
+  // Use text type for simplicity and compatibility
   return {
-    msg_type: 'post',
+    msg_type: 'text',
     content: {
-      post: {
-        zh_cn: {
-          title: `📰 ${summary.feedName}`,
-          content: [
-            [
-              {
-                tag: 'text',
-                text: `标题: ${titleLink}\n\n摘要:\n${summary.summary}`,
-              },
-            ],
-            [
-              {
-                tag: 'text',
-                text: `\n来源: ${summary.source || summary.feedName}`,
-                style: {
-                  bold: false,
-                  italic: true,
-                },
-              },
-            ],
-            summary.publishedAt
-              ? [
-                  {
-                    tag: 'text',
-                    text: `发布时间: ${summary.publishedAt}`,
-                    style: {
-                      bold: false,
-                      italic: true,
-                    },
-                  },
-                ]
-              : null,
-          ].filter(Boolean),
-        },
-      },
+      text: messageText,
     },
   };
 }
