@@ -2,11 +2,11 @@
  * RssAiSummaryCompilation - Entry Point
  *
  * Autonomous RSS feed aggregator with AI summarization
- * Fetches RSS feeds, summarizes content with Claude API, and posts to Lark
+ * Fetches RSS feeds, summarizes content with OpenAI API, and posts to Lark
  */
 
 import 'dotenv/config';
-import { initializeClaudeClient } from './services/summarizer.service.js';
+import { initializeLLMClient } from './services/summarizer.service.js';
 import { loadFeedsConfig } from './services/config.service.js';
 import { scheduleFeeds, processAllFeeds } from './services/processor.service.js';
 import type { ProcessorConfig } from './services/processor.service.js';
@@ -19,20 +19,21 @@ async function main(): Promise<void> {
   console.log('');
 
   try {
-    // Initialize Claude API
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Initialize OpenAI API
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.error('Error: ANTHROPIC_API_KEY environment variable not set');
+      console.error('Error: OPENAI_API_KEY environment variable not set');
       process.exit(1);
     }
 
-    initializeClaudeClient({
+    initializeLLMClient({
       apiKey,
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'gpt-4o-mini',
       maxTokens: 300,
+      provider: 'openai',
     });
 
-    console.log('✓ Claude API initialized');
+    console.log('✓ OpenAI API initialized');
 
     // Load configuration
     const config = await loadFeedsConfig(FEEDS_CONFIG_PATH);

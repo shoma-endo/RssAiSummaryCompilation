@@ -4,30 +4,31 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  initializeClaudeClient,
+  initializeLLMClient,
   summarizeContent,
 } from '../src/services/summarizer.service.js';
-import type { ClaudeConfig } from '../src/types.js';
+import type { LLMConfig } from '../src/types.js';
 
 describe('Summarizer Service', () => {
-  describe('initializeClaudeClient', () => {
-    it('should initialize Claude client with valid API key', () => {
-      const config: ClaudeConfig = {
+  describe('initializeLLMClient', () => {
+    it('should initialize OpenAI client with valid API key', () => {
+      const config: LLMConfig = {
         apiKey: 'test-key-123',
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'gpt-4o-mini',
         maxTokens: 300,
+        provider: 'openai',
       };
 
-      expect(() => initializeClaudeClient(config)).not.toThrow();
+      expect(() => initializeLLMClient(config)).not.toThrow();
     });
 
     it('should throw error if API key is missing', () => {
-      const config: ClaudeConfig = {
+      const config: LLMConfig = {
         apiKey: '',
       };
 
-      expect(() => initializeClaudeClient(config)).toThrow(
-        'Claude API key is required'
+      expect(() => initializeLLMClient(config)).toThrow(
+        'OpenAI API key is required'
       );
     });
   });
@@ -35,7 +36,7 @@ describe('Summarizer Service', () => {
   describe('summarizeContent', () => {
     beforeEach(() => {
       // Initialize with test key
-      initializeClaudeClient({ apiKey: 'test-key' });
+      initializeLLMClient({ apiKey: 'test-key', provider: 'openai' });
     });
 
     it('should return error message for empty content', async () => {
@@ -77,7 +78,7 @@ describe('Summarizer Service', () => {
 
   describe('Error handling', () => {
     beforeEach(() => {
-      initializeClaudeClient({ apiKey: 'test-key' });
+      initializeLLMClient({ apiKey: 'test-key', provider: 'openai' });
     });
 
     it('should throw error for API failures', async () => {
@@ -96,22 +97,24 @@ describe('Summarizer Service', () => {
 
   describe('Configuration', () => {
     it('should store configuration correctly', () => {
-      const config: ClaudeConfig = {
+      const config: LLMConfig = {
         apiKey: 'test-api-key',
-        model: 'test-model',
+        model: 'gpt-4o-mini',
         maxTokens: 500,
+        provider: 'openai',
       };
 
-      expect(() => initializeClaudeClient(config)).not.toThrow();
+      expect(() => initializeLLMClient(config)).not.toThrow();
     });
 
     it('should allow custom max tokens', () => {
-      const config: ClaudeConfig = {
+      const config: LLMConfig = {
         apiKey: 'test-key',
         maxTokens: 1000,
+        provider: 'openai',
       };
 
-      expect(() => initializeClaudeClient(config)).not.toThrow();
+      expect(() => initializeLLMClient(config)).not.toThrow();
     });
   });
 });

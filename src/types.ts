@@ -60,7 +60,17 @@ export interface LarkWebhookResponse {
 }
 
 /**
- * Configuration for Claude API
+ * Configuration for LLM API (supports both Claude and OpenAI)
+ */
+export interface LLMConfig {
+  apiKey: string;
+  model?: string;
+  maxTokens?: number;
+  provider?: 'openai' | 'claude';
+}
+
+/**
+ * Configuration for Claude API (deprecated, use LLMConfig instead)
  */
 export interface ClaudeConfig {
   apiKey: string;

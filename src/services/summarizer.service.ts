@@ -1,27 +1,27 @@
 /**
  * AI Summarization Service
- * Uses Claude API to summarize RSS feed content
+ * Uses OpenAI API to summarize RSS feed content
  */
 
-import { ClaudeConfig } from '../types.js';
+import { LLMConfig } from '../types.js';
 
-// Store Claude config globally
-let claudeConfig: ClaudeConfig | undefined;
+// Store LLM config globally
+let llmConfig: LLMConfig | undefined;
 
 /**
- * Initialize Claude API client with configuration
- * @param config - Claude configuration with API key
+ * Initialize OpenAI API client with configuration
+ * @param config - LLM configuration with API key
  */
-export function initializeClaudeClient(config: ClaudeConfig): void {
+export function initializeLLMClient(config: LLMConfig): void {
   if (!config.apiKey) {
-    throw new Error('Claude API key is required');
+    throw new Error('OpenAI API key is required');
   }
   // Store configuration for use in summarization
-  claudeConfig = config;
+  llmConfig = config;
 }
 
 /**
- * Summarize content using Claude API
+ * Summarize content using OpenAI API
  * @param content - Content to summarize
  * @param systemPrompt - Custom system prompt for summarization
  * @param maxTokens - Maximum tokens for response (default: 300)
@@ -32,9 +32,9 @@ export async function summarizeContent(
   systemPrompt: string = 'Summarize the following content concisely.',
   maxTokens: number = 300
 ): Promise<string> {
-  if (!claudeConfig?.apiKey) {
+  if (!llmConfig?.apiKey) {
     throw new Error(
-      'Claude API not initialized. Call initializeClaudeClient first.'
+      'OpenAI API not initialized. Call initializeLLMClient first.'
     );
   }
 
@@ -43,18 +43,20 @@ export async function summarizeContent(
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': claudeConfig.apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${llmConfig.apiKey}`,
       },
       body: JSON.stringify({
-        model: claudeConfig.model || 'claude-3-5-sonnet-20241022',
+        model: llmConfig.model || 'gpt-4o-mini',
         max_tokens: maxTokens,
-        system: systemPrompt,
         messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
           {
             role: 'user',
             content: `Please summarize the following content:\n\n${content.substring(0, 8000)}`,
@@ -67,19 +69,19 @@ export async function summarizeContent(
       const errorData = (await response.json()) as Record<string, unknown>;
       const errorMessage =
         (errorData.error as Record<string, unknown>)?.message || 'Unknown error';
-      throw new Error(`Claude API error: ${errorMessage}`);
+      throw new Error(`OpenAI API error: ${errorMessage}`);
     }
 
     const data = (await response.json()) as {
-      content: Array<{ type: string; text: string }>;
+      choices: Array<{ message: { content: string } }>;
     };
-    const textContent = data.content.find((c) => c.type === 'text');
+    const firstChoice = data.choices?.[0];
 
-    if (!textContent) {
-      throw new Error('No text content in Claude API response');
+    if (!firstChoice?.message?.content) {
+      throw new Error('No text content in OpenAI API response');
     }
 
-    return textContent.text;
+    return firstChoice.message.content;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
