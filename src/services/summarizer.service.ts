@@ -50,7 +50,7 @@ export async function summarizeContent(
         'Authorization': `Bearer ${llmConfig.apiKey}`,
       },
       body: JSON.stringify({
-        model: llmConfig.model || 'gpt-4o-mini',
+        model: llmConfig.model || 'gpt-5-nano',
         max_tokens: maxTokens,
         messages: [
           {

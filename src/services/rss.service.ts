@@ -19,17 +19,18 @@ const parser = new Parser({
  * Fetch articles from an RSS feed URL
  * @param feedUrl - URL of the RSS feed
  * @param limit - Maximum number of articles to fetch (default: 10)
+ * @param sinceDate - Optional ISO date string to filter articles published after this date
  * @returns Array of feed articles
  */
 export async function fetchFeedArticles(
   feedUrl: string,
-  limit: number = 10
+  limit: number = 10,
+  sinceDate?: string
 ): Promise<FeedArticle[]> {
   try {
     const feed = await parser.parseURL(feedUrl);
 
-    const articles: FeedArticle[] = (feed.items || [])
-      .slice(0, limit)
+    let articles: FeedArticle[] = (feed.items || [])
       .map((item) => ({
         title: item.title || 'Untitled',
         link: item.link,
@@ -40,7 +41,35 @@ export async function fetchFeedArticles(
         creator: item.creator,
       }));
 
-    return articles;
+    // Filter articles by date if sinceDate is provided
+    if (sinceDate) {
+      const sinceTimestamp = new Date(sinceDate).getTime();
+      articles = articles.filter((article) => {
+        const articleDate = article.isoDate
+          ? new Date(article.isoDate).getTime()
+          : article.pubDate
+            ? new Date(article.pubDate).getTime()
+            : 0;
+        return articleDate > sinceTimestamp;
+      });
+    }
+
+    // Sort by date (newest first) and limit
+    articles.sort((a, b) => {
+      const dateA = a.isoDate
+        ? new Date(a.isoDate).getTime()
+        : a.pubDate
+          ? new Date(a.pubDate).getTime()
+          : 0;
+      const dateB = b.isoDate
+        ? new Date(b.isoDate).getTime()
+        : b.pubDate
+          ? new Date(b.pubDate).getTime()
+          : 0;
+      return dateB - dateA;
+    });
+
+    return articles.slice(0, limit);
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
