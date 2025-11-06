@@ -24,6 +24,7 @@ export interface FeedsConfiguration {
   processSchedule: string;
   realtimeMonitoring?: boolean; // Enable real-time monitoring mode (short polling interval)
   realtimeIntervalMinutes?: number; // Polling interval in minutes for real-time mode (default: 5)
+  larkBase?: LarkBaseConfig; // Optional Lark Base integration for RSS URL management
 }
 
 /**
@@ -78,4 +79,64 @@ export interface ClaudeConfig {
   apiKey: string;
   model?: string;
   maxTokens?: number;
+}
+
+/**
+ * Lark Base configuration for RSS URL management
+ *
+ * Field Validation Requirements:
+ * - appId: Required, non-empty string, Lark App ID format
+ * - appSecret: Required, non-empty string, should be kept secure
+ * - baseUrl: Required, valid Lark Base URL format
+ *   Format: https://[tenant].larksuite.com/base/[baseId]
+ *   Or: https://[tenant].feishu.cn/base/[baseId]
+ * - tableId: Required, non-empty string, the table ID within the base
+ * - viewId: Optional, specific view ID to filter data
+ * - urlFieldName: Required, the field name containing RSS URLs (default: 'URL')
+ * - nameFieldName: Optional, field name for feed names (default: 'Name')
+ * - enabledFieldName: Optional, field name for enabled status (default: 'Enabled')
+ */
+export interface LarkBaseConfig {
+  appId: string;
+  appSecret: string;
+  baseUrl: string;
+  tableId: string;
+  viewId?: string;
+  urlFieldName?: string;
+  nameFieldName?: string;
+  enabledFieldName?: string;
+}
+
+/**
+ * Record from Lark Base
+ */
+export interface LarkBaseRecord {
+  record_id: string;
+  fields: Record<string, any>;
+  created_time: number;
+  last_modified_time: number;
+}
+
+/**
+ * Lark Base API response for listing records
+ */
+export interface LarkBaseListRecordsResponse {
+  code: number;
+  msg: string;
+  data?: {
+    has_more: boolean;
+    page_token?: string;
+    total: number;
+    items: LarkBaseRecord[];
+  };
+}
+
+/**
+ * Lark App access token response
+ */
+export interface LarkAppAccessTokenResponse {
+  code: number;
+  msg: string;
+  app_access_token?: string;
+  expire: number;
 }
