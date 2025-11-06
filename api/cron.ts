@@ -36,7 +36,7 @@ export default async function handler(
 
     initializeLLMClient({
       apiKey,
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-5-nano',
       maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '300', 10),
       provider: 'openai',
     });

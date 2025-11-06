@@ -64,7 +64,7 @@ Vercel Dashboard の **Settings > Environment Variables** で以下を設定し�
 
 | 変数名 | デフォルト値 | 説明 |
 |--------|-------------|------|
-| `OPENAI_MODEL` | `gpt-4o-mini` | 使用する OpenAI モデル |
+| `OPENAI_MODEL` | `gpt-5-nano` | 使用する OpenAI モデル |
 | `OPENAI_MAX_TOKENS` | `300` | 要約の最大トークン数 |
 | `ARTICLES_PER_FEED` | `5` | フィードごとに処理する記事数 |
 | `SUMMARY_SYSTEM_PROMPT` | デフォルトプロンプト | AI 要約用のシステムプロンプト |
