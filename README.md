@@ -5,8 +5,10 @@ RSSフィードを自動取得し、OpenAI APIで要約してLarkに投稿する
 ## 機能
 
 - **RSSフィード取得**: 複数のRSSフィードから記事を自動取得
+- **Lark Base統合**: Lark Base（飞书多维表格）からRSSフィードURLを自動取得 🆕
 - **AI要約**: OpenAI API（gpt-5-nano）を使用して記事を要約
 - **Lark連携**: Webhook経由でLarkグループチャットに直接投稿
+- **設定UIWeb**: Lark Base連携の設定をブラウザから管理 🆕
 - **柔軟な設定**: カスタマイズ可能なプロンプトと処理スケジュール
 - **スケジュール実行**: Cron形式での自動処理
 - **リアルタイムモニタリング**: 短い間隔（デフォルト5分）で新着記事をチェック
@@ -54,7 +56,7 @@ FEEDS_CONFIG_FILE=.ai/feeds.json
 ### ローカル開発
 
 ```bash
-# 開発モード（スケジュール実行）
+# バックエンド開発モード（スケジュール実行）
 npm run dev
 
 # 1回だけ実行して終了
@@ -63,8 +65,18 @@ npm run dev -- --once
 # 新着記事のみ処理（1回実行）
 npm run dev -- --once --new
 
-# ビルド
+# 設定UIサーバーを起動 🆕
+npm run dev:next
+# → http://localhost:3000 でアクセス
+
+# ビルド（バックエンド + フロントエンド）
 npm run build
+
+# バックエンドのみビルド
+npm run build:backend
+
+# フロントエンドのみビルド
+npm run build:frontend
 
 # 型チェック
 npm run typecheck
@@ -81,17 +93,27 @@ npm run lint
 
 ```
 api/
-└── cron.ts                    # Vercel Cron Jobsエンドポイント
+└── cron.ts                        # Vercel Cron Jobsエンドポイント
+app/                               # Next.js App Router 🆕
+├── layout.tsx                    # レイアウト
+├── page.tsx                      # 設定UI（メインページ）
+└── api/                          # APIルート
+    ├── config/route.ts           # 設定管理API
+    └── lark-base/
+        ├── test/route.ts         # Lark Base接続テスト
+        └── fetch/route.ts        # Lark Baseからフィード取得
 src/
-├── index.ts                   # メインエントリーポイント（ローカル開発用）
-├── types.ts                   # 型定義
+├── index.ts                       # メインエントリーポイント（ローカル開発用）
+├── types.ts                       # 型定義
 └── services/
-    ├── rss.service.ts        # RSSフィード取得
-    ├── summarizer.service.ts # OpenAI API統合
-    ├── lark.service.ts       # Lark Webhook投稿
-    ├── config.service.ts     # 設定管理（ファイルシステム/KV対応）
-    ├── storage.service.ts    # ストレージ抽象化（Vercel KV対応）
-    └── processor.service.ts  # フィード処理とスケジューリング
+    ├── rss.service.ts            # RSSフィード取得
+    ├── summarizer.service.ts     # OpenAI API統合
+    ├── lark.service.ts           # Lark Webhook投稿
+    ├── lark-base.service.ts      # Lark Base API統合 🆕
+    ├── config.service.ts         # 設定管理（ファイルシステム/KV対応）
+    ├── storage.service.ts        # ストレージ抽象化（Vercel KV対応）
+    └── processor.service.ts      # フィード処理とスケジューリング
+next.config.js                     # Next.js設定 🆕
 ```
 
 ## 設定
@@ -161,6 +183,107 @@ src/
 4. 処理完了後に`lastProcessed`を更新
 5. 新着記事をLarkに送信
 
+## Lark Base統合 🆕
+
+Lark Base（飛书多維表格 / Feishu Base）からRSSフィードURLを自動取得できます。これにより、RSSフィードの管理をLark Baseで一元化できます。
+
+### Lark Base設定
+
+#### 1. Larkアプリの作成
+
+1. [Lark Open Platform](https://open.larksuite.com/) または [Feishu Open Platform](https://open.feishu.cn/) にアクセス
+2. 新しいアプリを作成
+3. **App ID** と **App Secret** を取得
+4. アプリに以下の権限を付与：
+   - `bitable:app` - Base（多維表格）へのアクセス
+   - `bitable:app:readonly` - Baseデータの読み取り
+
+#### 2. Lark Baseの準備
+
+Lark Baseに以下のフィールドを持つテーブルを作成：
+
+| フィールド名 | 型 | 必須 | 説明 |
+|------------|-----|------|------|
+| `URL` | テキスト | ✅ | RSSフィードのURL |
+| `Name` | テキスト | ❌ | フィードの表示名 |
+| `Enabled` | チェックボックス | ❌ | 有効/無効の切り替え |
+
+**注意:** フィールド名は設定UIでカスタマイズできます。
+
+#### 3. Base URLとTable IDの取得
+
+1. Lark BaseのURLを開く（例：`https://example.larksuite.com/base/abc123?table=tblxxx&view=vewyyy`）
+2. **Base URL**: `https://example.larksuite.com/base/abc123`
+3. **Table ID**: URLの`table=`パラメータ（例：`tblxxx`）
+4. **View ID**（オプション）: URLの`view=`パラメータ（例：`vewyyy`）
+
+#### 4. 設定UIで設定
+
+```bash
+npm run dev:next
+```
+
+http://localhost:3000 にアクセスして、以下を入力：
+
+- **Lark App ID**: `cli_xxx...`
+- **Lark App Secret**: アプリのシークレット
+- **Base URL**: `https://example.larksuite.com/base/abc123`
+- **Table ID**: `tblxxx`
+- **View ID**（オプション）: 特定のビューのみ取得する場合
+
+「Test Connection」ボタンで接続を確認後、「Save Configuration」で保存します。
+
+#### 5. フィールド名のカスタマイズ（オプション）
+
+設定UIの「Advanced: Field Names」セクションで、Lark Baseのフィールド名をカスタマイズできます：
+
+- **URL Field Name**: RSSフィードURLが入っているフィールド（デフォルト: `URL`）
+- **Name Field Name**: フィード名が入っているフィールド（デフォルト: `Name`）
+- **Enabled Field Name**: 有効/無効を管理するフィールド（デフォルト: `Enabled`）
+
+### フィールドバリデーション
+
+Lark Base設定には以下のバリデーションが適用されます：
+
+- **App ID**: 必須、Lark App ID形式（例：`cli_xxx...`）
+- **App Secret**: 必須、セキュアに保管
+- **Base URL**: 必須、以下の形式：
+  - `https://[tenant].larksuite.com/base/[baseId]`
+  - `https://[tenant].feishu.cn/base/[baseId]`
+- **Table ID**: 必須、テーブルID（例：`tblxxx...`）
+- **View ID**: オプション、ビューID（例：`vewxxx...`）
+- **フィールド名**: 空文字列は不可
+
+### Lark Base統合の動作
+
+1. フィード処理開始時に、Lark BaseからRSSフィードURLを取得
+2. 取得したフィードと設定ファイル内のフィードをマージ（Lark Baseが優先）
+3. 有効なフィードのみを処理
+4. Lark Base取得に失敗した場合は、設定ファイルのフィードにフォールバック
+
+### プログラムでの設定（JSON）
+
+`.ai/feeds.json` または Vercel KVに直接設定することもできます：
+
+```json
+{
+  "feeds": [...],
+  "webhookUrl": "...",
+  "defaultSystemPrompt": "...",
+  "processSchedule": "0 9 * * *",
+  "larkBase": {
+    "appId": "cli_xxx...",
+    "appSecret": "your-secret",
+    "baseUrl": "https://example.larksuite.com/base/abc123",
+    "tableId": "tblxxx",
+    "viewId": "vewyyy",
+    "urlFieldName": "URL",
+    "nameFieldName": "Name",
+    "enabledFieldName": "Enabled"
+  }
+}
+```
+
 ## APIサービス
 
 ### RSSサービス
@@ -191,8 +314,16 @@ src/
 - 環境に応じた自動切り替え
 - フォールバック機能（KV → 環境変数 → デフォルト）
 
+### Lark Baseサービス 🆕
+- Lark App認証（App ID + App Secret）
+- Lark Base APIとの通信
+- レコードの取得とフィード設定への変換
+- フィールドバリデーションとエラーハンドリング
+- 接続テスト機能
+
 ### プロセッサーサービス
 - フィード処理のオーケストレーション
+- Lark Baseからのフィード自動取得 🆕
 - Cron式によるスケジューリング
 - リアルタイムモニタリング機能
 - 要約と投稿のワークフロー管理

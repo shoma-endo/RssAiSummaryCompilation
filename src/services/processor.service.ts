@@ -4,12 +4,13 @@
  */
 
 import * as cron from 'node-cron';
-import { FeedConfig, SummaryResult } from '../types.js';
+import { FeedConfig, SummaryResult, LarkBaseConfig } from '../types.js';
 import { fetchFeedArticles } from './rss.service.js';
 import { summarizeContent } from './summarizer.service.js';
 import { sendToLark } from './lark.service.js';
 import { updateFeedLastProcessed } from './config.service.js';
 import { isVercelEnvironment, updateFeedLastProcessedKV } from './storage.service.js';
+import { larkBaseService } from './lark-base.service.js';
 
 export interface ProcessorConfig {
   feeds: FeedConfig[];
@@ -17,6 +18,7 @@ export interface ProcessorConfig {
   defaultSystemPrompt: string;
   articlesPerFeed?: number;
   configPath?: string; // Path to config file for updating lastProcessed
+  larkBase?: LarkBaseConfig; // Optional Lark Base integration
 }
 
 /**
@@ -86,6 +88,46 @@ export async function processSingleFeed(
 }
 
 /**
+ * Fetch feeds from Lark Base and merge with configured feeds
+ * @param config - Processor configuration
+ * @returns Merged feed list
+ */
+async function getFeedsWithLarkBase(config: ProcessorConfig): Promise<FeedConfig[]> {
+  let feeds = [...config.feeds];
+
+  // If Lark Base is configured, fetch feeds from there
+  if (config.larkBase) {
+    try {
+      console.log('Fetching RSS feeds from Lark Base...');
+      const result = await larkBaseService.fetchFeedsFromBase(config.larkBase);
+
+      if (result.errors.length > 0) {
+        console.warn(`Lark Base fetch warnings: ${result.errors.join(', ')}`);
+      }
+
+      if (result.feeds.length > 0) {
+        console.log(`Fetched ${result.feeds.length} feeds from Lark Base`);
+
+        // Merge with existing feeds, prioritizing Lark Base feeds
+        const larkFeedIds = new Set(result.feeds.map((f) => f.id));
+        const nonLarkFeeds = feeds.filter((f) => !larkFeedIds.has(f.id));
+
+        feeds = [...result.feeds, ...nonLarkFeeds];
+      } else {
+        console.log('No feeds found in Lark Base, using configured feeds only');
+      }
+    } catch (error) {
+      console.error(
+        `Failed to fetch feeds from Lark Base: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+      console.log('Falling back to configured feeds only');
+    }
+  }
+
+  return feeds;
+}
+
+/**
  * Process multiple feeds and send summaries to Lark
  * @param config - Processor configuration
  * @param onlyNew - If true, only process articles newer than lastProcessed
@@ -102,7 +144,9 @@ export async function processAllFeeds(
   const mode = onlyNew ? 'new articles only' : 'all articles';
   console.log(`Starting feed processing (${mode}) at ${new Date().toISOString()}`);
 
-  const enabledFeeds = config.feeds.filter((f) => f.enabled);
+  // Fetch feeds from Lark Base if configured
+  const allFeeds = await getFeedsWithLarkBase(config);
+  const enabledFeeds = allFeeds.filter((f) => f.enabled);
   let totalSummaries = 0;
   let successCount = 0;
   let failureCount = 0;
