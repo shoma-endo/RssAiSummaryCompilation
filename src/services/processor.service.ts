@@ -9,6 +9,7 @@ import { fetchFeedArticles } from './rss.service.js';
 import { summarizeContent } from './summarizer.service.js';
 import { sendToLark } from './lark.service.js';
 import { updateFeedLastProcessed } from './config.service.js';
+import { isVercelEnvironment, updateFeedLastProcessedKV } from './storage.service.js';
 
 export interface ProcessorConfig {
   feeds: FeedConfig[];
@@ -131,10 +132,15 @@ export async function processAllFeeds(
         }
       }
 
-      // Update lastProcessed timestamp if we processed articles and configPath is provided
-      if (summaries.length > 0 && config.configPath) {
+      // Update lastProcessed timestamp if we processed articles
+      if (summaries.length > 0) {
         try {
-          await updateFeedLastProcessed(config.configPath, feed.id);
+          // Check if we're in Vercel environment
+          if (isVercelEnvironment()) {
+            await updateFeedLastProcessedKV(feed.id, new Date().toISOString());
+          } else if (config.configPath) {
+            await updateFeedLastProcessed(config.configPath, feed.id);
+          }
         } catch (error) {
           console.warn(
             `Failed to update lastProcessed for ${feed.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
