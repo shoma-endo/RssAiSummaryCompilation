@@ -7,10 +7,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { processAllFeeds } from '../src/services/processor.service.js';
 import type { ProcessorConfig } from '../src/services/processor.service.js';
 import { initializeLLMClient } from '../src/services/summarizer.service.js';
-import {
-  loadConfigFromKV,
-  updateFeedLastProcessedKV,
-} from '../src/services/storage.service.js';
+import { loadConfigFromKV } from '../src/services/storage.service.js';
 
 export default async function handler(
   req: VercelRequest,
@@ -59,20 +56,8 @@ export default async function handler(
     };
 
     // Process feeds (only new articles)
+    // lastProcessed timestamps are updated automatically within processAllFeeds
     const result = await processAllFeeds(processorConfig, true);
-
-    // Update lastProcessed timestamps in KV
-    const timestamp = new Date().toISOString();
-    for (const feed of config.feeds.filter((f) => f.enabled)) {
-      try {
-        await updateFeedLastProcessedKV(feed.id, timestamp);
-      } catch (error) {
-        console.warn(
-          `Failed to update lastProcessed for ${feed.name}:`,
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-      }
-    }
 
     console.log('Cron job completed successfully');
 
