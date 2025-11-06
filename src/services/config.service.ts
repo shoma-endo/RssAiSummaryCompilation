@@ -1,20 +1,33 @@
 /**
  * Configuration Management Service
  * Handles loading and saving RSS feed configurations
+ * Supports both local file system and Vercel KV storage
  */
 
 import fs from 'fs/promises';
 import path from 'path';
 import { FeedsConfiguration, FeedConfig } from '../types.js';
+import {
+  loadConfigFromKV,
+  saveConfigToKV,
+  updateFeedLastProcessedKV,
+  isVercelEnvironment,
+} from './storage.service.js';
 
 /**
- * Load feeds configuration from file
- * @param configPath - Path to configuration file
+ * Load feeds configuration from file or KV storage
+ * @param configPath - Path to configuration file (ignored in Vercel environment)
  * @returns Loaded configuration or default if file doesn't exist
  */
 export async function loadFeedsConfig(
   configPath: string
 ): Promise<FeedsConfiguration> {
+  // Use KV storage in Vercel environment
+  if (isVercelEnvironment()) {
+    return loadConfigFromKV();
+  }
+
+  // Use file system in local environment
   try {
     const content = await fs.readFile(configPath, 'utf-8');
     const config = JSON.parse(content) as FeedsConfiguration;
@@ -35,14 +48,20 @@ export async function loadFeedsConfig(
 }
 
 /**
- * Save feeds configuration to file
- * @param configPath - Path to configuration file
+ * Save feeds configuration to file or KV storage
+ * @param configPath - Path to configuration file (ignored in Vercel environment)
  * @param config - Configuration to save
  */
 export async function saveFeedsConfig(
   configPath: string,
   config: FeedsConfiguration
 ): Promise<void> {
+  // Use KV storage in Vercel environment
+  if (isVercelEnvironment()) {
+    return saveConfigToKV(config);
+  }
+
+  // Use file system in local environment
   try {
     // Ensure directory exists
     const dir = path.dirname(configPath);
@@ -103,13 +122,19 @@ export async function getEnabledFeeds(
 
 /**
  * Update feed's last processed timestamp
- * @param configPath - Path to configuration file
+ * @param configPath - Path to configuration file (ignored in Vercel environment)
  * @param feedId - ID of feed to update
  */
 export async function updateFeedLastProcessed(
   configPath: string,
   feedId: string
 ): Promise<void> {
+  // Use KV storage in Vercel environment
+  if (isVercelEnvironment()) {
+    return updateFeedLastProcessedKV(feedId, new Date().toISOString());
+  }
+
+  // Use file system in local environment
   const config = await loadFeedsConfig(configPath);
   const feed = config.feeds.find((f) => f.id === feedId);
 
